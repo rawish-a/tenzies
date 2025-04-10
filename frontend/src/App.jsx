@@ -1,16 +1,27 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Die from "./Die";
 import { nanoid } from "nanoid"
 
 function App() {
 
     const [dice, setDice] = useState(() => generateAllNewDice())
+    const buttonRef = useRef(null)
+
+    const gameWon = dice.every(die => die.isHeld) &&
+    dice.every(die => die.value === dice[0].value)
+
+    useEffect(() => {
+        if (gameWon) {
+            buttonRef.current.focus()
+        }
+    }, [gameWon])
 
     const diceElements = dice.map(dieObj => 
         <Die 
         key={dieObj.id}
         value={dieObj.value}
         isHeld={dieObj.isHeld}
+        hold={hold}
         id={dieObj.id} />
     )
 
@@ -28,33 +39,41 @@ function App() {
         return newDice
     }
 
+    function hold(id) {
+        setDice(oldDice => oldDice.map(die => 
+                die.id === id ? {...die, isHeld: !die.isHeld} : die
+            )
+        )
+    }
+
     function rollDice() {
-        setDice(generateAllNewDice())
+        if (!gameWon) {
+            setDice(oldDice => oldDice.map(die =>
+                die.isHeld ? die : {...die, value: Math.floor(Math.random() * 6 + 1)}))
+              
+               //only change value of the buttons not held
+               //dont roll those dice, roll other dice  
+        } else {
+            setDice(generateAllNewDice())
+        }
+          
     }
 
 
     return (
         <>
         <main>
-            <h1>Tenzies</h1>
-            <p>Roll until all dice are the same. Click each die to freeze it at its current value between rolls.</p>
+            <h1 className="title">Tenzies</h1>
+            <p className="instructions">Roll until all dice are the same. Click each die to freeze it at its current value between rolls.</p>
             <div className="dice-container">
                 {diceElements}
             </div>
-            <button className="roll-dice" onClick={rollDice}>Roll</button>
+            <button ref={buttonRef} className="roll-dice" onClick={rollDice}>
+                {gameWon ? "New Game" : "Roll" }
+            </button>
         </main>
         </>
     ) 
 }
 
 export default App
-
-
-
-//Steps:
-//7. Add conditional styling to the Die component so that when its held, its background color changes 
-//8. Make it so that the die selection is held. Create a function 'hold' that takes 'id' as a parameter
-//9. Update the isHeld property to true on the correct die in an array
-//10. Make it so when we click the roll button we dont lose the hold dice but only re-roll the dice that are not being held
-//11. Check if the game is won (We can derive the game won status based on the conditions of the current dice state on every render)
-//    Winning conditions are 1. all the dice are being held, and 2. all the dice have the same value
